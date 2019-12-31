@@ -1,12 +1,9 @@
-# Moves files into a path given their lastWriteDate:
-# from: file.ext
-#   to: yyyy/yyyy-MM-dd/file.ext
-# 
 # modified from 
 # https://til.secretgeek.net/powershell/rename_photos.html
 # 
 # usage example:
-# ls *.jpg | Move-Photo -Destination ~/Desktop
+#   Import-Module C:\Users\peter\move.ps1
+#   ls | Move-Photo -destination ../dest
 
 function Move-Photo(
 
@@ -14,7 +11,7 @@ function Move-Photo(
 	[parameter( ParameterSetName = 'Path', Mandatory )]
 	[parameter( ParameterSetName = 'LiteralPath' )]
 	[ValidateScript({Test-Path $_})]
-	[string] $Destination = ".",
+	[string] $destination = ".",
 
 	[parameter(
 		Mandatory,
@@ -40,7 +37,8 @@ function Move-Photo(
 ){
 	BEGIN {
 
-		write-host $Destination
+		# troubleshooting
+		# write-host $destination
 
 	}
 	PROCESS
@@ -55,6 +53,7 @@ function Move-Photo(
 		}
 
 		# process
+		$done = 0
 		foreach ($source in $resolvedPaths) {
 
 			# last write time is good enough
@@ -62,14 +61,22 @@ function Move-Photo(
 
 			# build destination path
 			$item = Get-Item $source
-			$newpath = [IO.Path]::Combine( $Destination, ("{0:yyyy}" -f $date), ("{0:yyyy-MM-dd}" -f $date), $item.Name )
+			$newpath = [IO.Path]::Combine( $destination, ("{0:yyyy}" -f $date), ("{0:yyyy-MM-dd}" -f $date), $item.Name )
 
-			# ensure folder exists
-			mkdir -force (Split-Path $newpath) | Out-Null
+			# troubleshooting
+			# write-host "source: $source"
+			# write-host "date: $date"
+			# write-host ("{0:yyyy}" -f $date)
+			# write-host ("{0:yyyy-MM-dd}" -f $date)
+			# write-host $newpath
 
 			# move
+			mkdir -force (Split-Path $newpath) | Out-Null
 			# rename-item $source $newpath
 			copy-item $source $newpath -Force
+
+			$done++
+			Write-Progress -Activity 'copying ...' -Status $newpath -PercentComplete ( ( $done / $resolvedPaths.Length ) * 100 )
 
 		}
 	}
